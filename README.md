@@ -1,38 +1,86 @@
-# create-svelte
+# TicTacToe Plus
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+这是一个井字棋 (Tic-Tac-Toe) 的强化版本，更大的棋子能覆盖更小的棋子。从而引发了一些奇妙的化学反应。
 
-## Creating a project
+## websocket通信机制
 
-If you're seeing this, you've probably already done this step. Congrats!
+* 甲登录服务器，建立房间
+    * 发送
+    ```javascript
+    {
+        "v": "1",
+        "type": "create_room",
+        "content": {
+            "nick_name": "abc",
+            "room_name": "a-react-developer",
+        }
+    }
+    ```
+    * 返回（成功）
+    ```javascript
+    {
+        "v": "1",
+        "type": "create_room_reply",
+        "content": {
+            "message": "success"
+        }
+    }
+    ```
+    * 返回（失败）
+    ```javascript
+    {
+        "v": "1",
+        "type": "create_room_reply",
+        "content": {
+            "message": "fail",
+            "reason": "server full"
+        }
+    }
+    ```
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+* 乙登录加入已存在的房间
+    * 发送
+    ```javascript
+    {
+        "v": "1",
+        "type": "join_room",
+        "content": {
+            "nick_name": "def",
+            "room_name": "a-react-developer",
+        }
+    }
+    ```
+    * 返回（成功）
+    ```javascript
+    {
+        "v": "1",
+        "type": "join_room_reply",
+        "content": {
+            "message": "success"
+        }
+    }
+    ```
+    * 返回（失败）
+    ```javascript
+    {
+        "v": "1",
+        "type": "join_room_reply",
+        "content": {
+            "message": "fail",
+            "reason": "no room"
+        }
+    }
+    ```
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+* 两方都加入，游戏开始
+    * 发送
+    ```javascript 
+    {
+        "v": "1",
+        "type": "start_game",
+        "content": {
+            "host": "Rich",
+            "client": "Evan"
+        }
+    }
+    ```
