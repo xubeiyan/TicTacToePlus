@@ -4,8 +4,10 @@
 
 ## websocket通信机制
 
+用 `s2b` 代表服务器发送到浏览器的消息，`b2s`代表浏览器发送到服务器的消息
+
 * 甲登录服务器，建立房间
-    * 发送
+    * `b2s`
     ```javascript
     {
         "v": "1",
@@ -16,7 +18,7 @@
         }
     }
     ```
-    * 返回（成功）
+    * `s2b`（成功）
     ```javascript
     {
         "v": "1",
@@ -26,7 +28,7 @@
         }
     }
     ```
-    * 返回（失败）
+    * `s2b`（失败）
     ```javascript
     {
         "v": "1",
@@ -39,7 +41,7 @@
     ```
 
 * 乙登录加入已存在的房间
-    * 发送
+    * `b2s`
     ```javascript
     {
         "v": "1",
@@ -50,7 +52,7 @@
         }
     }
     ```
-    * 返回（成功）
+    * `s2b`（成功）
     ```javascript
     {
         "v": "1",
@@ -60,7 +62,7 @@
         }
     }
     ```
-    * 返回（失败）
+    * `s2b`（失败）
     ```javascript
     {
         "v": "1",
@@ -72,15 +74,37 @@
     }
     ```
 
-* 两方都加入，游戏开始
-    * 发送
+* 两方都加入，请求游戏开始
+    * `s2b`
     ```javascript 
     {
         "v": "1",
-        "type": "start_game",
+        "type": "start_request",
         "content": {
             "host": "Rich",
             "client": "Evan"
+        }
+    }
+    ```
+    * `b2s`（确认开始）
+    ```javascript
+    {
+        "v": "1",
+        "type": "start_confirm",
+        "content": {
+            "from": "host",
+            "confirm": true,
+        }
+    }
+    ```
+    * `s2b` （确认消息）
+    ```javascript
+    {
+        "v": "1",
+        "type": "confirm_change",
+        "content": {
+            "from": "host",
+            "confirm": true
         }
     }
     ```

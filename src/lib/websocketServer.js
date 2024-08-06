@@ -6,7 +6,7 @@ const wss = new WebSocketServer({ port: 6789 });
 // 最大房间数
 const MAX_ROOM_LENGTH = 5;
 
-const room_lists = [];
+let room_lists = [];
 
 wss.on('connection', (ws) => {
   ws.on('error', console.error);
@@ -70,6 +70,7 @@ wss.on('connection', (ws) => {
       }
 
       // 检查是否存在该room
+      
       const filtered = room_lists.filter(one => one.room_name == data.content.room_name);
       if (filtered.length != 1) {
         ws.send(JSON.stringify({
@@ -97,15 +98,36 @@ wss.on('connection', (ws) => {
           message: "success"
         }
       }));
-      // 向两个参与者发送加入游戏开始消息
+      // 向两个参与者发送请求确认消息
       filtered[0].ws.forEach(socket => {
         socket.send(JSON.stringify({
-          v: "1", type: "start_game", content: {
+          v: "1", type: "start_request", content: {
             host: filtered[0].players[0],
             client: filtered[0].players[1]
           }
         }));
       })
+    } else if (data.type == 'start_confirm') {
+      if (!(data.content?.room_name && data.content.from)) return;
+      // 检查是否存在该room
+      const filtered = room_lists.filter(one => one.room_name == data.content.room_name);
+      if (filtered.length != 1) return;
+
+      const { from, confirm } = data.content;
+
+      filtered[0].ws.forEach(socket => {
+        socket.send(JSON.stringify({
+          v: "1", type: "confirm_change", content: {
+            from,
+            confirm,
+          }
+        }));
+      });
+
+      // 有人放弃则清除房间信息
+      if (confirm == false) {
+        room_lists = room_lists.filter(one => one.room_name != data.content.room_name);
+      }
     }
   });
 
