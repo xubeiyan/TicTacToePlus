@@ -51,7 +51,6 @@
 		ws = new WebSocket(PUBLIC_WEBSOCKET_ADDRESS);
 
 		ws.addEventListener('open', () => {
-			ws.send(JSON.stringify({ v: '1', type: 'login', content: '12345678' }));
 			status.connected = true;
 		});
 
@@ -173,70 +172,105 @@
 		);
 	};
 
+	let urlCopied = false;
+	// 复制地址
+	const copyURL = async () => {
+		urlCopied = true;
+		let text = `${window.location.href}?room=${room.name}`;
+		try {
+			await navigator.clipboard.writeText(text);
+		} catch (err) {
+			console.error('Failed to copy: ', err);
+		}
+	};
+
+	// 处理URL中的room
+	const handleURLRoom = () => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.has('room')) {
+			room.name = params.get('room');
+		}
+	}
+
 	onMount(() => {
 		connect();
+		handleURLRoom();
 	});
 </script>
 
-<div>
-	<span>连接状态：</span>
-	<span>{statusText}</span>
-	{#if status.connected}
-		<button on:click={disconnect}>断开连接</button>
-	{:else}
-		<button on:click={connect}>重新连接</button>
-	{/if}
-	{#if status.game == 'idle'}
-		<button
-			class="border border-neutral-600 rounded-md disabled:text-neutral-100"
-			on:click={createRoom}
-			disabled={status.inRoom}>新建房间</button
-		>
-		<form>
-			<input class="border rounded-md" placeholder="输入要加入的房间名称" bind:value={room.name} />
+<div class="flex gap-2 mx-2">
+	<fieldset class="border border-slate-400 px-2 pb-2">
+		<legend>连接状态</legend>
+		<span>{statusText}</span>
+		{#if status.connected}
+			<button class="border border-slate-400 px-2 rounded-md" on:click={disconnect}>断开连接</button
+			>
+		{:else}
+			<button class="border border-slate-400 px-2 rounded-md" on:click={connect}>重新连接</button>
+		{/if}
+	</fieldset>
+	<fieldset class="border border-slate-400 px-2 pb-2 grow">
+		<legend>房间</legend>
+		{#if status.game == 'idle'}
 			<button
-				class="border border-neutral-600 rounded-md disabled:text-neutral-100"
+				class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
+				on:click={createRoom}
+				disabled={status.inRoom}>新建房间</button
+			>
+			<span>或者</span>
+			<input
+				class="border border-slate-400 px-1 min-w-[20em] rounded-md"
+				placeholder="输入要加入的房间名称"
+				bind:value={room.name}
+			/>
+			<button
+				class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
 				disabled={status.inRoom || room.name == ''}
 				on:click={joinRoom}>加入房间</button
 			>
-		</form>
-	{/if}
-	{#if status.inRoom}
-		<span>在房间：{room.name} 中</span>
-	{/if}
-	<p>
-		游戏状态:
+		{/if}
+		{#if status.inRoom}
+			<span>在房间：{room.name} 中</span>
+			<button
+				class="border border-neutral-600 rounded-md px-2 {urlCopied ? 'text-slate-400' : ''}"
+				on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
+			>
+			<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
+			<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
+		{/if}
+	</fieldset>
 
+	<fieldset class="border border-slate-400 px-2 pb-2">
+		<legend>游戏状态</legend>
 		{#if status.game == 'idle'}
 			<span>空闲中</span>
 		{:else if status.game == 'waitForAnother'}
 			<span>等待另一玩家加入</span>
 		{:else if status.game == 'confirm'}
 			<span>开始确认</span>
-			<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
-			<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
 		{:else if status.game == 'started'}
 			<span>游戏开始</span>
 		{/if}
-	</p>
-	<dialog
-		open={confirmDialog.open}
-		class="border border-slate-700 bg-slate-100 px-10 py-8 rounded-lg relative"
-	>
-		<div class="mb-2">
-			<span>点击“我准备好了”，以开始游戏</span>
-		</div>
-		<div class="mb-6">
-			<p>{players.host} {room.readyStatus[0] ? '√' : ''}</p>
-			<p>{players.client} {room.readyStatus[1] ? '√' : ''}</p>
-		</div>
-		<div class="absolute bottom-2 right-2">
-			<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('ready')}
-				>我准备好了</button
-			>
-			<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('')}
-				>放弃</button
-			>
-		</div>
-	</dialog>
+	</fieldset>
 </div>
+
+<dialog
+	open={confirmDialog.open}
+	class="border border-slate-700 bg-slate-100 px-6 py-2 rounded-lg absolute top-[50%] translate-y-[-50%]"
+>
+	<div class="mb-2">
+		<span>点击“我准备好了”，以开始游戏</span>
+	</div>
+	<div class="mb-8">
+		<p>{players.host} {room.readyStatus[0] ? '√' : ''}</p>
+		<p>{players.client} {room.readyStatus[1] ? '√' : ''}</p>
+	</div>
+	<div class="absolute bottom-2 right-2">
+		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('ready')}
+			>我准备好了</button
+		>
+		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('')}
+			>放弃</button
+		>
+	</div>
+</dialog>
