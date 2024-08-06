@@ -190,7 +190,7 @@
 		if (params.has('room')) {
 			room.name = params.get('room');
 		}
-	}
+	};
 
 	onMount(() => {
 		connect();
@@ -231,10 +231,12 @@
 		{/if}
 		{#if status.inRoom}
 			<span>在房间：{room.name} 中</span>
-			<button
-				class="border border-neutral-600 rounded-md px-2 {urlCopied ? 'text-slate-400' : ''}"
-				on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
-			>
+			{#if status.game == 'idle' || status.game == 'waitForAnother'}
+				<button
+					class="border border-neutral-600 rounded-md px-2 {urlCopied ? 'text-slate-400' : ''}"
+					on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
+				>
+			{/if}
 			<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
 			<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
 		{/if}
