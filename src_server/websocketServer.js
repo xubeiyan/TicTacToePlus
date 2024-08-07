@@ -3,17 +3,21 @@ import { WebSocketServer } from "ws";
 import { generateRandomRoomName } from "./util.js";
 
 // 最大房间数
-const MAX_ROOM_LENGTH = 5;
+const MAX_ROOM_LENGTH = process.env.WEBSOCKET_MAX_ROOM || 5;
+
+// 断连次数
+const MAX_TIMEOUT_TIMES = 30;
 
 // 房间列表
 let room_lists = [];
-const port = 6789;
+const port = process.env.WEBSOCKET_PORT || 9876;
 
 const wss = new WebSocketServer({ port });
-console.log(`[GameServer] Started on port ${port}`);
+console.log(`[GameServer] Started on port ${port}, max room size is ${MAX_ROOM_LENGTH}`);
 
 wss.on('connection', (ws) => {
   let room_name = null;
+  let timeout_time = 0;
   ws.on('error', console.error);
 
   ws.send(JSON.stringify({
@@ -28,6 +32,8 @@ wss.on('connection', (ws) => {
     if (data == undefined) return;
     if (data.type == 'keepalive' && data.content == 'pong') {
       // console.log('receive keepalive reply');
+      timeout_time -= 2;
+      timeout_time = timeout_time < 0 ? 0 : timeout_time;
       // TODO: 增加处理逻辑
       return;
     } else if (data.type == 'create_room') {
@@ -209,11 +215,18 @@ wss.on('connection', (ws) => {
 
   const keepAliveTimer = setInterval(() => {
     // console.log('send keepalive message');
+    timeout_time += 1;
+    if (timeout_time > MAX_TIMEOUT_TIMES) {
+      console.log(`[GameServer] Close a websocket cause TIMEOUT`);
+      ws.close();
+      clearInterval(keepAliveTimer);
+    }
     ws.send(JSON.stringify({ v: "1", type: "keepalive", content: "ping" }));
   }, 1000);
 
   ws.on('close', () => {
     clearInterval(keepAliveTimer);
+    console.log(`[GameServer] close a websocket`);
     if (room_name != null) {
       room_lists = room_lists.filter(one => one.room_name != room_name);
       console.log(`[GameServer] room ${room_name} close`);
