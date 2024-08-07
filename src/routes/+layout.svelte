@@ -1,10 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
 	import '../app.css';
-
-    onMount(() => {
-        
-    })
 </script>
 
 <svelte:head>

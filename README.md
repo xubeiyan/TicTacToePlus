@@ -108,3 +108,15 @@
         }
     }
     ```
+
+* 两方roll点，确定谁先手
+    * `s2b`
+    ```javascript
+    {
+        "v": "1",
+        "type": "initial_roll",
+        "content": {
+            "initial": "host",
+        }
+    }
+    ```
