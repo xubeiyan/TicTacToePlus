@@ -1,224 +1,374 @@
 <script>
-	import '../app.css';
-	import Place from '../components/Place.svelte';
-	import Chess from '../components/Chess.svelte';
-	import Redo from '../assets/icon/redo.svelte';
+	import { onMount } from 'svelte';
+	import { PUBLIC_WEBSOCKET_ADDRESS } from '$env/static/public';
 
-	// 该谁下子red/blue
-	let turn = {
-		color: 'red'
-	};
-	// 棋盘状态
-	let boardStatus = 'intro';
-	$: redPickClass = turn.color == 'red' ? 'outline outline-zinc-500' : '';
-	$: bluePickClass = turn.color == 'blue' ? 'outline outline-zinc-500' : '';
+	import { generateRandomPlayerName } from '$lib/utils';
+	import GameBoard from '../components/GameBoard.svelte';
 
-	// 棋子状态
-	let chessStatus = {
-		red: [],
-		blue: []
-	};
-	// 初始化棋子状态
-	const initChessStatus = () => {
-		chessStatus.red = Array.from({ length: 9 }, (_, i) => i + 1).map((one) => ({
-			id: one,
-			size: one % 3 == 1 ? 's' : one % 3 == 2 ? 'm' : 'l',
-			placement: 'idle',
-			selected: false
-		}));
-		chessStatus.blue = Array.from({ length: 9 }, (_, i) => i + 1).map((one) => ({
-			id: one,
-			size: one % 3 == 1 ? 's' : one % 3 == 2 ? 'm' : 'l',
-			placement: 'idle',
-			selected: false
-		}));
-	};
-	initChessStatus();
-	// 棋盘状态
-	let boardChess = ['', '', '', '', '', '', '', '', ''];
-
-	// 点击选择棋子
-	const handleSelectChess = (e, color) => {
-		// 已经胜利了则不响应选择
-		if (boardStatus != 'start') return;
-		if (color == 'red' && turn.color == 'red') {
-			// 如果此棋子没有放置，则选中它
-			const filtered = chessStatus.red.filter((one) => one.id == e.detail.id);
-			if (filtered.length == 1 && filtered[0].placement == 'idle') {
-				chessStatus.red.forEach((one) => (one.selected = false));
-				filtered[0].selected = true;
-			}
-		} else if (color == 'blue' && turn.color == 'blue') {
-			const filtered = chessStatus.blue.filter((one) => one.id == e.detail.id);
-			if (filtered.length == 1 && filtered[0].placement == 'idle') {
-				chessStatus.blue.forEach((one) => (one.selected = false));
-				filtered[0].selected = true;
-			}
-		}
-		// 黑科技👇
-		chessStatus = chessStatus;
+	// 状态
+	const status = {
+		connected: false,
+		inRoom: false,
+		game: 'idle'
 	};
 
-	// 点击棋盘位置
-	const handlePutOnBoard = (e) => {
-		const id = e.detail.id;
-		let filtered;
-		if (turn.color == 'red') {
-			filtered = chessStatus.red.filter((one) => one.selected);
-			// 没有选择则返回
-			if (filtered.length != 1) return;
-			const size = filtered[0].size;
+	// 玩家
+	const players = {
+		host: '',
+		client: ''
+	};
 
-			// 输出不能下并返回
-			if (
-				!(
-					boardChess[id] == '' ||
-					(boardChess[id][1] == 's' && size != 's') ||
-					(boardChess[id][1] == 'm' && size == 'l')
-				)
-			) {
+	// 房间
+	const room = {
+		name: '',
+		failMessage: undefined,
+		yourRole: undefined,
+		readyStatus: [null, null],
+		turnRole: null,
+		winner: null
+	};
+
+	// 服务器
+	const serverStatus = {
+		rooms: null,
+		max_room: null
+	};
+
+	// 确认对话框
+	const confirmDialog = {
+		open: false
+	};
+
+	let ws = null;
+
+	let gameBoard;
+
+	let urlCopied = false;
+
+	$: statusText = status.connected ? '已连接' : '未连接';
+	$: turnText = ` - ${room.yourRole == room.turnRole ? '该你了' : '对手下子'}`;
+	$: winnerText = ` - ${room.winner == 'host' ? players.host : players.client}获胜`;
+
+	// 恢复初始状态
+	const resetAll = () => {
+		status.inRoom = false;
+		status.game = 'idle';
+		players.host = '';
+		players.client = '';
+		room.name = '';
+		room.yourRole = undefined;
+		room.readyStatus = [null, null];
+		confirmDialog.open = false;
+		urlCopied = false;
+	};
+
+	// 连接websocket
+	const connect = () => {
+		ws = new WebSocket(PUBLIC_WEBSOCKET_ADDRESS);
+
+		ws.addEventListener('open', () => {
+			status.connected = true;
+		});
+
+		ws.addEventListener('close', () => {
+			ws = null;
+			status.connected = false;
+		});
+
+		ws.addEventListener('message', (msg) => {
+			const dataStr = msg.data;
+			const data = JSON.parse(dataStr);
+			if (data == undefined) return;
+			// 如果是keepalive消息。回复pong的消息
+			if (data.type == 'keepalive' && data.content == 'ping') {
+				ws.send(JSON.stringify({ v: '1', type: 'keepalive', content: 'pong' }));
 				return;
-			}
+				// 服务器状态
+			} else if (data.type == 'server_status') {
+				serverStatus.rooms = data.content.rooms;
+				serverStatus.max_room = data.content.max_room;
+				// 创建房间回复
+			} else if (data.type == 'create_room_reply') {
+				if (data.content == undefined) return;
+				if (data.content.message == 'success') {
+					status.inRoom = true;
+					room.name = data.content.room_name;
+				} else if (data.content.message == 'fail') {
+					room.failMessage = data.content.reason;
+				}
+				// 加入房间回复
+			} else if (data.type == 'join_room_reply') {
+				if (data.content == undefined) return;
+				if (data.content.message == 'fail') {
+					room.failMessage = data.content.reason;
+				} else if (data.content.message == 'success') {
+					status.inRoom = true;
+				}
+				// 请求游戏开始
+			} else if (data.type == 'start_request') {
+				status.game = 'confirm';
+				confirmDialog.open = true;
+				players.host = data.content.host;
+				players.client = data.content.client;
+				// 开始消息
+			} else if (data.type == 'confirm_change') {
+				if (data.content == undefined) return;
 
-			boardChess[id] = `r${size}`;
-			filtered[0].placement = id;
-			filtered[0].selected = false;
-			turn.color = 'blue';
-		} else if (turn.color == 'blue') {
-			filtered = chessStatus.blue.filter((one) => one.selected);
-			// 没有选择则返回
-			if (filtered.length != 1) return;
-			const size = filtered[0].size;
-			// 输出不能下并返回
-			if (
-				!(
-					boardChess[id] == '' ||
-					(boardChess[id][1] == 's' && size != 's') ||
-					(boardChess[id][1] == 'm' && size == 'l')
-				)
-			) {
-				return;
-			}
+				// 有人点了放弃
+				if (data.content.confirm == false) {
+					resetAll();
+					return;
+				}
 
-			boardChess[id] = `b${size}`;
-			filtered[0].placement = id;
-			filtered[0].selected = false;
-			turn.color = 'red';
-		}
-		// 黑科技👇
-		boardChess = boardChess;
-		chessStatus = chessStatus;
-		checkWinner();
+				if (data.content.from == 'host') {
+					room.readyStatus[0] = data.content.confirm;
+				} else if (data.content.from == 'client') {
+					room.readyStatus[1] = data.content.confirm;
+				}
+			} else if (data.type == 'initial_roll') {
+				confirmDialog.open = false;
+				status.game = 'started';
+				room.turnRole = data.content.initial;
+			} else if (data.type == 'select_chess_broadcast') {
+				gameBoard.updateSelectChess(data.content);
+			} else if (data.type == 'put_chess_broadcast') {
+				if (data.content.role == 'host') {
+					room.turnRole = 'client';
+				} else {
+					room.turnRole = 'host';
+				}
+				gameBoard.putChess(data.content);
+			} else if (data.type == 'win_broadcast') {
+				status.game = 'end';
+				room.winner = data.content.role;
+				gameBoard.win(data.content);
+			}
+		});
 	};
 
-	// 检查胜利者
-	const checkWinner = () => {
-		if (
-			(boardChess[0][0] == 'r' && boardChess[1][0] == 'r' && boardChess[2][0] == 'r') ||
-			(boardChess[0][0] == 'b' && boardChess[1][0] == 'b' && boardChess[2][0] == 'b') ||
-			(boardChess[3][0] == 'r' && boardChess[4][0] == 'r' && boardChess[5][0] == 'r') ||
-			(boardChess[3][0] == 'b' && boardChess[4][0] == 'b' && boardChess[5][0] == 'b') ||
-			(boardChess[6][0] == 'r' && boardChess[7][0] == 'r' && boardChess[8][0] == 'r') ||
-			(boardChess[6][0] == 'b' && boardChess[7][0] == 'b' && boardChess[8][0] == 'b') ||
-			(boardChess[0][0] == 'r' && boardChess[3][0] == 'r' && boardChess[6][0] == 'r') ||
-			(boardChess[0][0] == 'b' && boardChess[3][0] == 'b' && boardChess[6][0] == 'b') ||
-			(boardChess[1][0] == 'r' && boardChess[4][0] == 'r' && boardChess[7][0] == 'r') ||
-			(boardChess[1][0] == 'b' && boardChess[4][0] == 'b' && boardChess[7][0] == 'b') ||
-			(boardChess[2][0] == 'r' && boardChess[5][0] == 'r' && boardChess[8][0] == 'r') ||
-			(boardChess[2][0] == 'b' && boardChess[5][0] == 'b' && boardChess[8][0] == 'b') ||
-			(boardChess[0][0] == 'r' && boardChess[4][0] == 'r' && boardChess[8][0] == 'r') ||
-			(boardChess[0][0] == 'b' && boardChess[4][0] == 'b' && boardChess[8][0] == 'b') ||
-			(boardChess[2][0] == 'r' && boardChess[4][0] == 'r' && boardChess[6][0] == 'r') ||
-			(boardChess[2][0] == 'b' && boardChess[4][0] == 'b' && boardChess[6][0] == 'b')
-		) {
-			if (turn.color == 'red') {
-				boardStatus = 'blueWin';
-			} else if (turn.color == 'blue') {
-				boardStatus = 'redWin';
-			}
-			return;
-		}
+	// 断开连接
+	const disconnect = () => {
+		if (ws == null) return;
+		ws.close();
+		resetAll();
+	};
 
-		const filtered = boardChess.filter((one) => one == '');
-		if (filtered.length == 0) {
-			boardStatus = 'draw';
+	// 新建房间
+	const createRoom = () => {
+		if (ws == null) return;
+		const playerName = generateRandomPlayerName();
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'create_room',
+				content: {
+					nick_name: playerName
+				}
+			})
+		);
+		players.host = playerName;
+		status.game = 'waitForAnother';
+		room.yourRole = 'host';
+	};
+
+	// 加入房间
+	const joinRoom = () => {
+		if (ws == null) return;
+		players.client = generateRandomPlayerName();
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'join_room',
+				content: {
+					nick_name: players.client,
+					room_name: room.name
+				}
+			})
+		);
+		room.yourRole = 'client';
+	};
+
+	// 确认或退出游戏
+	const confirm = (msg) => {
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'start_confirm',
+				content: {
+					room_name: room.name,
+					from: room.yourRole,
+					confirm: msg == 'ready' ? true : false
+				}
+			})
+		);
+	};
+
+	// 复制地址
+	const copyURL = async () => {
+		urlCopied = true;
+		let text = `${window.location.href}?room=${room.name}`;
+		try {
+			await navigator.clipboard.writeText(text);
+		} catch (err) {
+			console.error('Failed to copy: ', err);
 		}
 	};
 
-    // 开始游戏
-    const start = () => {
-        boardStatus = 'start';
-    }
-
-	// 重启游戏
-	const restart = () => {
-		initChessStatus();
-		boardChess = ['', '', '', '', '', '', '', '', ''];
-		turn = {
-			color: 'red'
-		};
-        boardStatus = 'start';
+	// 处理URL中的room
+	const handleURLRoom = () => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.has('room')) {
+			room.name = params.get('room');
+		}
 	};
+
+	// 处理选择棋子
+	const handlePickChess = (e) => {
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'select_chess',
+				content: {
+					room_name: room.name,
+					color: e.detail.color,
+					index: e.detail.index
+				}
+			})
+		);
+	};
+
+	// 处理下棋
+	const handlePutChess = (e) => {
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'put_chess',
+				content: {
+					role: room.yourRole,
+					room_name: room.name,
+					board_index: e.detail.board_index,
+					color: e.detail.color,
+					holder_index: e.detail.holder_index
+				}
+			})
+		);
+	};
+
+	// 处理胜利
+	const handleWin = (e) => {
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'win',
+				content: {
+					room_name: room.name,
+					color: e.detail.color,
+					role: e.detail.role,
+					position: e.detail.position
+				}
+			})
+		);
+	};
+
+	onMount(() => {
+		connect();
+		handleURLRoom();
+	});
 </script>
 
-<main class="min-h-svh flex flex-col md:flex-row gap-2 justify-evenly items-center relative">
-	<div
-		class="grid grid-cols-3 grid-rows-3 items-start md:items-end gap-y-2 p-4 rounded-lg {redPickClass}"
-	>
-		{#each chessStatus.red as chess (chess.id)}
-			<Chess
-				size={chess.size}
-				color="red"
-				id={chess.id}
-				placement={chess.placement}
-				selected={chess.selected}
-				on:selectChess={(e) => handleSelectChess(e, 'red')}
-			/>
-		{/each}
-	</div>
-	<div class="relative grid grid-cols-3 grid-rows-3 gap-2 z-1">
-		{#each boardChess as chess, id}
-			<Place {chess} {id} on:putOnBoard={(e) => handlePutOnBoard(e)} />
-		{/each}
-	</div>
-	<div class="grid grid-cols-3 grid-rows-3 items-end gap-y-2 p-4 rounded-lg {bluePickClass}">
-		{#each chessStatus.blue as chess (chess.id)}
-			<Chess
-				size={chess.size}
-				color="blue"
-				id={chess.id}
-				placement={chess.placement}
-				selected={chess.selected}
-				on:selectChess={(e) => handleSelectChess(e, 'blue')}
-			/>
-		{/each}
-	</div>
-	{#if boardStatus == 'redWin' || boardStatus == 'blueWin' || boardStatus == 'draw'}
-		<div
-			class="absolute w-full h-full flex flex-col gap-2 justify-center items-center z-10 bg-slate-200/50 text-lg"
-		>
-			{#if boardStatus == 'redWin'}
-				<span class="text-red-600 rotate-180 md:rotate-0">Red win!</span>
-			{:else if boardStatus == 'blueWin'}
-				<span class="text-blue-600">Blue win!</span>
-			{:else if boardStatus == 'draw'}
-				<span>Draw</span>
+<div class="flex flex-col gap-2 min-h-screen">
+	<div class="flex gap-2 mx-2">
+		<fieldset class="border border-slate-400 px-2 pb-2">
+			<legend>连接状态</legend>
+			<span>{statusText}</span>
+			{#if status.connected}
+				<button class="border border-slate-400 px-2 rounded-md" on:click={disconnect}
+					>断开连接</button
+				>
+			{:else}
+				<button class="border border-slate-400 px-2 rounded-md" on:click={connect}>重新连接</button>
 			{/if}
-			<button
-				class="outline outline-1 hover:outline-2 outline-slate-300 p-2 bg-slate-300 rounded-md"
-				on:click={restart}
-			>
-				<Redo />
-			</button>
-		</div>
+			{#if serverStatus.rooms != null && serverStatus.max_room != null}
+				<span>服务器房间数：{serverStatus.rooms}/{serverStatus.max_room}</span>
+			{/if}
+		</fieldset>
+		<fieldset class="border border-slate-400 px-2 pb-2 grow">
+			<legend>房间</legend>
+			{#if status.game == 'idle'}
+				<button
+					class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
+					on:click={createRoom}
+					disabled={status.inRoom}>新建房间</button
+				>
+				<span>或者</span>
+				<input
+					class="border border-slate-400 px-1 min-w-[20em] rounded-md"
+					placeholder="输入要加入的房间名称"
+					bind:value={room.name}
+				/>
+				<button
+					class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
+					disabled={status.inRoom || room.name == ''}
+					on:click={joinRoom}>加入房间</button
+				>
+			{/if}
+			{#if status.inRoom}
+				<span>在房间：{room.name} 中</span>
+				{#if status.game == 'idle' || status.game == 'waitForAnother'}
+					<button
+						class="border border-neutral-600 rounded-md px-2 {urlCopied ? 'text-slate-400' : ''}"
+						on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
+					>
+				{/if}
+				<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
+				<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
+			{/if}
+		</fieldset>
+
+		<fieldset class="border border-slate-400 px-2 pb-2">
+			<legend>游戏状态</legend>
+			{#if status.game == 'idle'}
+				<span>空闲中</span>
+			{:else if status.game == 'waitForAnother'}
+				<span>等待另一玩家加入</span>
+			{:else if status.game == 'confirm'}
+				<span>开始确认</span>
+			{:else if status.game == 'started'}
+				<span>游戏开始 {turnText}</span>
+			{:else if status.game == 'end'}
+				<span>游戏结束 {winnerText}</span>
+			{/if}
+		</fieldset>
+	</div>
+	{#if status.game == 'started' || status.game == 'end'}
+		<GameBoard
+			bind:this={gameBoard}
+			yourRole={room.yourRole}
+			turnRole={room.turnRole}
+			on:pickColorChessOnIndex={(e) => handlePickChess(e)}
+			on:putColorChessOnIndex={(e) => handlePutChess(e)}
+			on:win={(e) => handleWin(e)}
+		/>
 	{/if}
-    {#if boardStatus == 'intro'}
-    <div class="absolute w-full h-full flex flex-col justify-center items-center bg-neutral-300/40 px-4">
-        <p class="text-lg">欢迎玩耍井字棋Plus版！</p>
-        <p>每方拥有小、中、大棋子各三枚，每人行动时可以先选择要放置的棋子（点击一下），再放置到棋盘上（在棋盘上点一下）。</p>
-        <p>除了将棋子放置到空的棋盘格子上，还可以放置到比该枚棋子小的棋子上。</p>
-        <p>大型棋子可以覆盖中型棋子和小型棋子，中型棋子可以覆盖小型棋子。首先连成一条线的玩家获得胜利。</p>
-        <button class="bg-slate-600 px-2 py-1 rounded-md text-white mt-2" on:click={start}>明白</button>
-    </div>
-    {/if}
-</main>
+</div>
+
+<dialog
+	open={confirmDialog.open}
+	class="border border-slate-700 bg-slate-100 px-6 py-2 rounded-lg absolute top-[50%] translate-y-[-50%]"
+>
+	<div class="mb-2">
+		<span>点击“我准备好了”，以开始游戏</span>
+	</div>
+	<div class="mb-8">
+		<p>{players.host} {room.readyStatus[0] ? '√' : ''}</p>
+		<p>{players.client} {room.readyStatus[1] ? '√' : ''}</p>
+	</div>
+	<div class="absolute bottom-2 right-2">
+		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('ready')}
+			>我准备好了</button
+		>
+		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('')}
+			>放弃</button
+		>
+	</div>
+</dialog>
