@@ -3,14 +3,15 @@ import { WebSocketServer } from "ws";
 import { generateRandomRoomName } from "./util.js";
 
 // 最大房间数
-const MAX_ROOM_LENGTH = process.env.WEBSOCKET_MAX_ROOM || 5;
+const MAX_ROOM_LENGTH = process.env.MAX_ROOM || 5;
 
 // 断连次数
 const MAX_TIMEOUT_TIMES = 30;
 
 // 房间列表
 let room_lists = [];
-const port = process.env.WEBSOCKET_PORT || 9876;
+// 监听端口
+const port = process.env.PORT || 9876;
 
 const wss = new WebSocketServer({ port });
 console.log(`[GameServer] Started on port ${port}, max room size is ${MAX_ROOM_LENGTH}`);
