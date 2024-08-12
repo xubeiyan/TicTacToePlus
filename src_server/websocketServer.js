@@ -1,6 +1,6 @@
 // 此文件用于处理websocket连接和消息
 import { WebSocketServer } from "ws";
-import { generateRandomRoomName } from "./util.js";
+import { generateRandomRoomNameAndCode } from "./util.js";
 
 // 最大房间数
 const MAX_ROOM_LENGTH = process.env.MAX_ROOM || 5;
@@ -58,10 +58,12 @@ wss.on('connection', (ws) => {
         return;
       }
 
-      room_name = generateRandomRoomName(room_lists.length);
+      const { name, code } = generateRandomRoomNameAndCode(room_lists.length);
+      room_name = name;
 
       room_lists.push({
         room_name,
+        room_code: code,
         players: [{
           name: data.content.nick_name,
           ready: false,
@@ -69,7 +71,7 @@ wss.on('connection', (ws) => {
         ws: [ws],
       });
 
-      ws.send(JSON.stringify({ v: "1", type: "create_room_reply", content: { message: "success", room_name } }));
+      ws.send(JSON.stringify({ v: "1", type: "create_room_reply", content: { message: "success", room_name, room_code: code } }));
       ws.send(JSON.stringify({
         v: "1", type: "server_status", content: {
           rooms: room_lists.length,
@@ -79,10 +81,10 @@ wss.on('connection', (ws) => {
       return;
     } else if (data.type == 'join_room') {
       // 检查是否有room_name和nickname
-      if (!(data.content?.room_name && data.content?.nick_name)) {
+      if (!(data.content?.room_code && data.content?.nick_name)) {
         ws.send(JSON.stringify({
           v: "1", type: "join_room_reply", content: {
-            message: "fail", reason: "miss room name or nick name"
+            message: "fail", reason: "miss room code or nick name"
           }
         }));
         return;
@@ -90,11 +92,11 @@ wss.on('connection', (ws) => {
 
       // 检查是否存在该room
 
-      const filtered = room_lists.filter(one => one.room_name == data.content.room_name);
+      const filtered = room_lists.filter(one => one.room_code == data.content.room_code);
       if (filtered.length != 1) {
         ws.send(JSON.stringify({
           v: "1", type: "join_room_reply", content: {
-            message: "fail", reason: "room name not exists"
+            message: "fail", reason: "room code not exists"
           }
         }));
         return;
@@ -117,7 +119,8 @@ wss.on('connection', (ws) => {
       filtered[0].ws.push(ws);
       ws.send(JSON.stringify({
         v: "1", type: "join_room_reply", content: {
-          message: "success"
+          message: "success",
+          room_name: filtered[0].room_name,
         }
       }));
       ws.send(JSON.stringify({

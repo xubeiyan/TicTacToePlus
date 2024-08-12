@@ -5,6 +5,10 @@
 	import { generateRandomPlayerName } from '$lib/utils';
 	import GameBoard from '../components/GameBoard.svelte';
 
+	import Footer from '../components/Footer.svelte';
+	import StartConfirmDialog from '../components/dialog/StartConfirmDialog.svelte';
+	import RoomCode from '../components/joinRoom/roomCode.svelte';
+
 	// 状态
 	const status = {
 		connected: false,
@@ -21,6 +25,7 @@
 	// 房间
 	const room = {
 		name: '',
+		code: '',
 		failMessage: undefined,
 		yourRole: undefined,
 		readyStatus: [null, null],
@@ -34,14 +39,12 @@
 		max_room: null
 	};
 
-	// 确认对话框
-	const confirmDialog = {
-		open: false
-	};
-
 	let ws = null;
 
-	let gameBoard;
+	// 游戏主界面
+	let gameBoard = null;
+	// 确认对话框
+	let confirmDialog = null;
 
 	let urlCopied = false;
 
@@ -56,6 +59,7 @@
 		players.host = '';
 		players.client = '';
 		room.name = '';
+		room.code = '';
 		room.yourRole = undefined;
 		room.readyStatus = [null, null];
 		confirmDialog.open = false;
@@ -93,6 +97,7 @@
 				if (data.content.message == 'success') {
 					status.inRoom = true;
 					room.name = data.content.room_name;
+					room.code = data.content.room_code;
 				} else if (data.content.message == 'fail') {
 					room.failMessage = data.content.reason;
 				}
@@ -103,11 +108,12 @@
 					room.failMessage = data.content.reason;
 				} else if (data.content.message == 'success') {
 					status.inRoom = true;
+					room.name = data.content.room_name;
 				}
 				// 请求游戏开始
 			} else if (data.type == 'start_request') {
 				status.game = 'confirm';
-				confirmDialog.open = true;
+				confirmDialog.toggleDialog('open');
 				players.host = data.content.host;
 				players.client = data.content.client;
 				// 开始消息
@@ -126,7 +132,7 @@
 					room.readyStatus[1] = data.content.confirm;
 				}
 			} else if (data.type == 'initial_roll') {
-				confirmDialog.open = false;
+				confirmDialog.toggleDialog('close');
 				status.game = 'started';
 				room.turnRole = data.content.initial;
 			} else if (data.type == 'select_chess_broadcast') {
@@ -172,7 +178,7 @@
 	};
 
 	// 加入房间
-	const joinRoom = () => {
+	const handleJoinRoom = (e) => {
 		if (ws == null) return;
 		players.client = generateRandomPlayerName();
 		ws.send(
@@ -181,7 +187,7 @@
 				type: 'join_room',
 				content: {
 					nick_name: players.client,
-					room_name: room.name
+					room_code: e.detail.code
 				}
 			})
 		);
@@ -189,7 +195,7 @@
 	};
 
 	// 确认或退出游戏
-	const confirm = (msg) => {
+	const handleConfirm = (e) => {
 		ws.send(
 			JSON.stringify({
 				v: '1',
@@ -197,29 +203,10 @@
 				content: {
 					room_name: room.name,
 					from: room.yourRole,
-					confirm: msg == 'ready' ? true : false
+					confirm: e.detail.confirm
 				}
 			})
 		);
-	};
-
-	// 复制地址
-	const copyURL = async () => {
-		urlCopied = true;
-		let text = `${window.location.href}?room=${room.name}`;
-		try {
-			await navigator.clipboard.writeText(text);
-		} catch (err) {
-			console.error('Failed to copy: ', err);
-		}
-	};
-
-	// 处理URL中的room
-	const handleURLRoom = () => {
-		const params = new URLSearchParams(window.location.search);
-		if (params.has('room')) {
-			room.name = params.get('room');
-		}
 	};
 
 	// 处理选择棋子
@@ -272,12 +259,11 @@
 
 	onMount(() => {
 		connect();
-		handleURLRoom();
 	});
 </script>
 
-<div class="flex flex-col gap-2 min-h-screen">
-	<div class="flex gap-2 mx-2">
+<div class="flex flex-col gap-2 min-h-screen dark:bg-slate-700 dark:text-slate-50 duration-300">
+	<div class="flex flex-col md:flex-row md:gap-2 mx-2">
 		<fieldset class="border border-slate-400 px-2 pb-2">
 			<legend>连接状态</legend>
 			<span>{statusText}</span>
@@ -294,31 +280,19 @@
 		</fieldset>
 		<fieldset class="border border-slate-400 px-2 pb-2 grow">
 			<legend>房间</legend>
-			{#if status.game == 'idle'}
+			{#if status.game == 'idle' && status.connected}
 				<button
-					class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
+					class="border border-slate-400 disabled:border-slate-100 rounded-md disabled:text-slate-100 px-2"
 					on:click={createRoom}
 					disabled={status.inRoom}>新建房间</button
 				>
-				<span>或者</span>
-				<input
-					class="border border-slate-400 px-1 min-w-[20em] rounded-md"
-					placeholder="输入要加入的房间名称"
-					bind:value={room.name}
-				/>
-				<button
-					class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
-					disabled={status.inRoom || room.name == ''}
-					on:click={joinRoom}>加入房间</button
-				>
+				<span>或者房间号码</span>
+				<RoomCode inRoom={status.inRoom} on:joinRoom={handleJoinRoom} />
 			{/if}
 			{#if status.inRoom}
 				<span>在房间：{room.name} 中</span>
-				{#if status.game == 'idle' || status.game == 'waitForAnother'}
-					<button
-						class="border border-neutral-600 rounded-md px-2 {urlCopied ? 'text-slate-400' : ''}"
-						on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
-					>
+				{#if status.game == 'waitForAnother'}
+					<span>房间号：{room.code}</span>
 				{/if}
 				<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
 				<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
@@ -350,25 +324,13 @@
 			on:win={(e) => handleWin(e)}
 		/>
 	{/if}
+	<Footer />
 </div>
 
-<dialog
-	open={confirmDialog.open}
-	class="border border-slate-700 bg-slate-100 px-6 py-2 rounded-lg absolute top-[50%] translate-y-[-50%]"
->
-	<div class="mb-2">
-		<span>点击“我准备好了”，以开始游戏</span>
-	</div>
-	<div class="mb-8">
-		<p>{players.host} {room.readyStatus[0] ? '√' : ''}</p>
-		<p>{players.client} {room.readyStatus[1] ? '√' : ''}</p>
-	</div>
-	<div class="absolute bottom-2 right-2">
-		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('ready')}
-			>我准备好了</button
-		>
-		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('')}
-			>放弃</button
-		>
-	</div>
-</dialog>
+<StartConfirmDialog
+	bind:this={confirmDialog}
+	playerName={players}
+	hostReadyStatus={room.readyStatus[0]}
+	clientReadyStatus={room.readyStatus[1]}
+	on:confirm={handleConfirm}
+/>

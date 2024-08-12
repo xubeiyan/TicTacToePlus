@@ -38,7 +38,7 @@
 		{/each}
 	</div>
 	{#if winText != null}
-		<div class="absolute inset-0 flex justify-center items-center z-10 bg-slate-200/50">
+		<div class="absolute inset-0 flex justify-center items-center z-10 bg-slate-200/50 dark:bg-slate-600/50">
 			<span>{winText}</span>
 		</div>
 	{/if}
