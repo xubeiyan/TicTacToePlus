@@ -6,6 +6,12 @@ const roomNameTemplates = {
 
 let order = [];
 
+// 添加校验位
+const getCheckDigit = (p, m, s) => {
+    const d = 10 - (p + m*3 + s) % 10;
+    return d % 10;
+}
+
 // 生成随机房间名字
 const generateRandomRoomNameAndCode = (index) => {
     const pLength = roomNameTemplates.prefix.length;
@@ -26,14 +32,15 @@ const generateRandomRoomNameAndCode = (index) => {
         }
     }
 
-    index = index % order.length;
-    const pIndex = Math.floor(Math.floor(index / sLength) / mLength) % pLength;
-    const mIndex = Math.floor(index / sLength) % mLength;
-    const sIndex = index % sLength;
+    const shuffleIndex = order[index % order.length]
+    const pIndex = Math.floor(Math.floor(shuffleIndex / sLength) / mLength) % pLength;
+    const mIndex = Math.floor(shuffleIndex / sLength) % mLength;
+    const sIndex = shuffleIndex % sLength;
+    const checkDigit = getCheckDigit(pIndex, mIndex, sIndex);
 
     return {
         name: `会${roomNameTemplates.prefix[pIndex]}的${roomNameTemplates.middle[mIndex]}${roomNameTemplates.suffix[sIndex]}开发者`,
-        code: `${pIndex}${mIndex}${sIndex}9`
+        code: `${pIndex}${mIndex}${sIndex}${checkDigit}`
     }
 }
 
