@@ -29,13 +29,18 @@
 			code: inputValue.join('')
 		});
 	};
+
+    export const clearRoomCode = () => {
+        inputValue = ['', '', '', ''];
+    }
 </script>
 
 <div class="inline-flex gap-1">
 	<input
 		class="px-1 w-[1.25em] rounded-md border border-slate-400 dark:bg-slate-600"
 		maxlength="1"
-		type="number"
+		type="text"
+        inputmode="numeric"
 		bind:this={one}
 		bind:value={inputValue[0]}
 		on:input={() => focusToNext('two')}
@@ -43,7 +48,8 @@
 	<input
 		class="px-1 w-[1.25em] rounded-md border border-slate-400 dark:bg-slate-600"
 		maxlength="1"
-		type="number"
+		type="text"
+        inputmode="numeric"
 		bind:this={two}
 		bind:value={inputValue[1]}
 		on:input={() => focusToNext('three')}
@@ -51,7 +57,8 @@
 	<input
 		class="px-1 w-[1.25em] rounded-md border border-slate-400 dark:bg-slate-600"
 		maxlength="1"
-		type="number"
+		type="text"
+        inputmode="numeric"
 		bind:this={three}
 		bind:value={inputValue[2]}
 		on:input={() => focusToNext('four')}
@@ -59,7 +66,8 @@
 	<input
 		class="px-1 w-[1.25em] rounded-md border border-slate-400 dark:bg-slate-600"
 		maxlength="1"
-		type="number"
+		type="text"
+        inputmode="numeric"
 		bind:this={four}
 		bind:value={inputValue[3]}
 	/>

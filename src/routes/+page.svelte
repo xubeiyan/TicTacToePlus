@@ -7,7 +7,7 @@
 
 	import Footer from '../components/Footer.svelte';
 	import StartConfirmDialog from '../components/dialog/StartConfirmDialog.svelte';
-	import RoomCode from '../components/joinRoom/roomCode.svelte';
+	import RoomCode from '../components/joinRoom/RoomCode.svelte';
 
 	// 状态
 	const status = {
@@ -45,6 +45,8 @@
 	let gameBoard = null;
 	// 确认对话框
 	let confirmDialog = null;
+	// 房间号输入框
+	let roomCode = null;
 
 	let urlCopied = false;
 
@@ -62,8 +64,7 @@
 		room.code = '';
 		room.yourRole = undefined;
 		room.readyStatus = [null, null];
-		confirmDialog.open = false;
-		urlCopied = false;
+		confirmDialog.toggleDialog('close');
 	};
 
 	// 连接websocket
@@ -106,6 +107,7 @@
 				if (data.content == undefined) return;
 				if (data.content.message == 'fail') {
 					room.failMessage = data.content.reason;
+					roomCode.clearRoomCode();
 				} else if (data.content.message == 'success') {
 					status.inRoom = true;
 					room.name = data.content.room_name;
@@ -287,7 +289,7 @@
 					disabled={status.inRoom}>新建房间</button
 				>
 				<span>或者房间号码</span>
-				<RoomCode inRoom={status.inRoom} on:joinRoom={handleJoinRoom} />
+				<RoomCode inRoom={status.inRoom} on:joinRoom={handleJoinRoom} bind:this={roomCode} />
 			{/if}
 			{#if status.inRoom}
 				<span>在房间：{room.name} 中</span>
