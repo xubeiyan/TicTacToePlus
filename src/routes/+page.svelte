@@ -7,6 +7,7 @@
 
 	import Footer from '../components/Footer.svelte';
 	import StartConfirmDialog from '../components/dialog/StartConfirmDialog.svelte';
+	import RoomCode from '../components/joinRoom/roomCode.svelte';
 
 	// 状态
 	const status = {
@@ -24,6 +25,7 @@
 	// 房间
 	const room = {
 		name: '',
+		code: '',
 		failMessage: undefined,
 		yourRole: undefined,
 		readyStatus: [null, null],
@@ -57,6 +59,7 @@
 		players.host = '';
 		players.client = '';
 		room.name = '';
+		room.code = '';
 		room.yourRole = undefined;
 		room.readyStatus = [null, null];
 		confirmDialog.open = false;
@@ -94,6 +97,7 @@
 				if (data.content.message == 'success') {
 					status.inRoom = true;
 					room.name = data.content.room_name;
+					room.code = data.content.room_code;
 				} else if (data.content.message == 'fail') {
 					room.failMessage = data.content.reason;
 				}
@@ -104,6 +108,7 @@
 					room.failMessage = data.content.reason;
 				} else if (data.content.message == 'success') {
 					status.inRoom = true;
+					room.name = data.content.room_name;
 				}
 				// 请求游戏开始
 			} else if (data.type == 'start_request') {
@@ -173,7 +178,7 @@
 	};
 
 	// 加入房间
-	const joinRoom = () => {
+	const handleJoinRoom = (e) => {
 		if (ws == null) return;
 		players.client = generateRandomPlayerName();
 		ws.send(
@@ -182,7 +187,7 @@
 				type: 'join_room',
 				content: {
 					nick_name: players.client,
-					room_name: room.name
+					room_code: e.detail.code
 				}
 			})
 		);
@@ -202,25 +207,6 @@
 				}
 			})
 		);
-	};
-
-	// 复制地址
-	const copyURL = async () => {
-		urlCopied = true;
-		let text = `${window.location.href}?room=${room.name}`;
-		try {
-			await navigator.clipboard.writeText(text);
-		} catch (err) {
-			console.error('Failed to copy: ', err);
-		}
-	};
-
-	// 处理URL中的room
-	const handleURLRoom = () => {
-		const params = new URLSearchParams(window.location.search);
-		if (params.has('room')) {
-			room.name = params.get('room');
-		}
 	};
 
 	// 处理选择棋子
@@ -273,12 +259,11 @@
 
 	onMount(() => {
 		connect();
-		handleURLRoom();
 	});
 </script>
 
 <div class="flex flex-col gap-2 min-h-screen dark:bg-slate-700 dark:text-slate-50 duration-300">
-	<div class="flex gap-2 mx-2">
+	<div class="flex flex-col md:flex-row md:gap-2 mx-2">
 		<fieldset class="border border-slate-400 px-2 pb-2">
 			<legend>连接状态</legend>
 			<span>{statusText}</span>
@@ -301,27 +286,13 @@
 					on:click={createRoom}
 					disabled={status.inRoom}>新建房间</button
 				>
-				<span>或者</span>
-				<input
-					class="border border-slate-400 dark:bg-slate-600 px-1 min-w-[20em] rounded-md"
-					placeholder="输入要加入的房间号"
-					bind:value={room.name}
-				/>
-				<button
-					class="border border-slate-400 disabled:border-slate-100 disabled:dark:border-slate-600 rounded-md disabled:text-slate-100 dark:disabled:text-slate-600 px-2"
-					disabled={status.inRoom || room.name == ''}
-					on:click={joinRoom}>加入房间</button
-				>
+				<span>或者房间号码</span>
+				<RoomCode inRoom={status.inRoom} on:joinRoom={handleJoinRoom} />
 			{/if}
 			{#if status.inRoom}
 				<span>在房间：{room.name} 中</span>
-				{#if status.game == 'idle' || status.game == 'waitForAnother'}
-					<button
-						class="border border-slate-600 dark:border-slate-50 rounded-md px-2 {urlCopied
-							? 'text-slate-400 dark:text-slate-50'
-							: ''}"
-						on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
-					>
+				{#if status.game == 'waitForAnother'}
+					<span>房间号：{room.code}</span>
 				{/if}
 				<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
 				<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>

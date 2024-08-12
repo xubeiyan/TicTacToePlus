@@ -30,9 +30,9 @@
 
 <dialog
 	{open}
-	class="border border-slate-700 bg-slate-100 dark:bg-slate-600 px-6 py-2 rounded-lg absolute top-[50%] translate-y-[-50%]"
+	class="border border-slate-700 bg-slate-100 dark:bg-slate-600  px-6 py-2 rounded-lg absolute top-[50%] translate-y-[-50%]"
 >
-	<div class="mb-2">
+	<div class="mb-2 dark:text-slate-50">
 		<span>点击“我准备好了”，以开始游戏</span>
 	</div>
 	<div class="mb-8">

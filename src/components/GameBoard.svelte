@@ -157,7 +157,7 @@
 	};
 </script>
 
-<div class="flex gap-8 grow justify-center items-center">
+<div class="flex flex-col md:flex-row gap-2 px-2 md:gap-8 grow md:justify-center items-center">
 	<ChessHolder color={leftColor} {cellSize} chess={leftHolder} {selectChess} />
 	<ChessBoard {board} {winText} on:putChess={(e) => handlePutChess(e)} />
 	<ChessHolder

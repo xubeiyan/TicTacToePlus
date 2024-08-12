@@ -7,7 +7,7 @@ const roomNameTemplates = {
 let order = [];
 
 // 生成随机房间名字
-const generateRandomRoomName = (index) => {
+const generateRandomRoomNameAndCode = (index) => {
     const pLength = roomNameTemplates.prefix.length;
     const mLength = roomNameTemplates.middle.length;
     const sLength = roomNameTemplates.suffix.length;
@@ -31,9 +31,12 @@ const generateRandomRoomName = (index) => {
     const mIndex = Math.floor(index / sLength) % mLength;
     const sIndex = index % sLength;
 
-    return `会${roomNameTemplates.prefix[pIndex]}的${roomNameTemplates.middle[mIndex]}${roomNameTemplates.suffix[sIndex]}开发者`
+    return {
+        name: `会${roomNameTemplates.prefix[pIndex]}的${roomNameTemplates.middle[mIndex]}${roomNameTemplates.suffix[sIndex]}开发者`,
+        code: `${pIndex}${mIndex}${sIndex}9`
+    }
 }
 
 export {
-    generateRandomRoomName
+    generateRandomRoomNameAndCode
 }
