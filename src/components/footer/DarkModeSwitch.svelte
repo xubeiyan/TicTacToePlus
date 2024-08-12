@@ -1,18 +1,31 @@
 <script>
-    let dark = false;
-    $: text = dark ? 'dark' : 'light';
+	import { onMount } from 'svelte';
 
-    const toggleDark = () => {
-        if (dark) {
-            document.documentElement.classList.remove('dark');
-        } else {
-            document.documentElement.classList.add('dark');
+	let dark = false;
+	$: text = dark ? 'dark' : 'light';
+
+	const toggleDark = () => {
+		if (dark) {
+			document.documentElement.classList.remove('dark');
+			window.localStorage.setItem('colorScheme', 'light');
+		} else {
+			document.documentElement.classList.add('dark');
+			window.localStorage.setItem('colorScheme', 'dark');
+		}
+		dark = !dark;
+	};
+
+	onMount(() => {
+		const colorScheme = window.localStorage.getItem('colorScheme');
+		if (colorScheme == undefined) {
+			window.localStorage.setItem('colorScheme', 'light');
+		} else if (colorScheme == 'dark' && dark == false) {
+            toggleDark();
         }
-        dark = !dark;
-    }
+	});
 </script>
 
 <label>
-    <input type="checkbox" on:change={toggleDark}/>
-    <span>{text}</span>
+	<input type="checkbox" on:change={toggleDark} />
+	<span>{text}</span>
 </label>
