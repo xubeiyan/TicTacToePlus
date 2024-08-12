@@ -5,6 +5,9 @@
 	import { generateRandomPlayerName } from '$lib/utils';
 	import GameBoard from '../components/GameBoard.svelte';
 
+	import Footer from '../components/Footer.svelte';
+	import StartConfirmDialog from '../components/dialog/StartConfirmDialog.svelte';
+
 	// 状态
 	const status = {
 		connected: false,
@@ -34,14 +37,12 @@
 		max_room: null
 	};
 
-	// 确认对话框
-	const confirmDialog = {
-		open: false
-	};
-
 	let ws = null;
 
-	let gameBoard;
+	// 游戏主界面
+	let gameBoard = null;
+	// 确认对话框
+	let confirmDialog = null;
 
 	let urlCopied = false;
 
@@ -107,7 +108,7 @@
 				// 请求游戏开始
 			} else if (data.type == 'start_request') {
 				status.game = 'confirm';
-				confirmDialog.open = true;
+				confirmDialog.toggleDialog('open');
 				players.host = data.content.host;
 				players.client = data.content.client;
 				// 开始消息
@@ -126,7 +127,7 @@
 					room.readyStatus[1] = data.content.confirm;
 				}
 			} else if (data.type == 'initial_roll') {
-				confirmDialog.open = false;
+				confirmDialog.toggleDialog('close');
 				status.game = 'started';
 				room.turnRole = data.content.initial;
 			} else if (data.type == 'select_chess_broadcast') {
@@ -189,7 +190,7 @@
 	};
 
 	// 确认或退出游戏
-	const confirm = (msg) => {
+	const handleConfirm = (e) => {
 		ws.send(
 			JSON.stringify({
 				v: '1',
@@ -197,7 +198,7 @@
 				content: {
 					room_name: room.name,
 					from: room.yourRole,
-					confirm: msg == 'ready' ? true : false
+					confirm: e.detail.confirm
 				}
 			})
 		);
@@ -276,7 +277,7 @@
 	});
 </script>
 
-<div class="flex flex-col gap-2 min-h-screen">
+<div class="flex flex-col gap-2 min-h-screen dark:bg-slate-700 dark:text-slate-50 duration-300">
 	<div class="flex gap-2 mx-2">
 		<fieldset class="border border-slate-400 px-2 pb-2">
 			<legend>连接状态</legend>
@@ -294,20 +295,20 @@
 		</fieldset>
 		<fieldset class="border border-slate-400 px-2 pb-2 grow">
 			<legend>房间</legend>
-			{#if status.game == 'idle'}
+			{#if status.game == 'idle' && status.connected}
 				<button
-					class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
+					class="border border-slate-400 disabled:border-slate-100 rounded-md disabled:text-slate-100 px-2"
 					on:click={createRoom}
 					disabled={status.inRoom}>新建房间</button
 				>
 				<span>或者</span>
 				<input
-					class="border border-slate-400 px-1 min-w-[20em] rounded-md"
-					placeholder="输入要加入的房间名称"
+					class="border border-slate-400 dark:bg-slate-600 px-1 min-w-[20em] rounded-md"
+					placeholder="输入要加入的房间号"
 					bind:value={room.name}
 				/>
 				<button
-					class="border border-neutral-600 disabled:border-neutral-100 rounded-md disabled:text-neutral-100 px-2"
+					class="border border-slate-400 disabled:border-slate-100 disabled:dark:border-slate-600 rounded-md disabled:text-slate-100 dark:disabled:text-slate-600 px-2"
 					disabled={status.inRoom || room.name == ''}
 					on:click={joinRoom}>加入房间</button
 				>
@@ -316,7 +317,9 @@
 				<span>在房间：{room.name} 中</span>
 				{#if status.game == 'idle' || status.game == 'waitForAnother'}
 					<button
-						class="border border-neutral-600 rounded-md px-2 {urlCopied ? 'text-slate-400' : ''}"
+						class="border border-slate-600 dark:border-slate-50 rounded-md px-2 {urlCopied
+							? 'text-slate-400 dark:text-slate-50'
+							: ''}"
 						on:click={copyURL}>{urlCopied ? '已复制' : '复制房间地址'}</button
 					>
 				{/if}
@@ -350,25 +353,13 @@
 			on:win={(e) => handleWin(e)}
 		/>
 	{/if}
+	<Footer />
 </div>
 
-<dialog
-	open={confirmDialog.open}
-	class="border border-slate-700 bg-slate-100 px-6 py-2 rounded-lg absolute top-[50%] translate-y-[-50%]"
->
-	<div class="mb-2">
-		<span>点击“我准备好了”，以开始游戏</span>
-	</div>
-	<div class="mb-8">
-		<p>{players.host} {room.readyStatus[0] ? '√' : ''}</p>
-		<p>{players.client} {room.readyStatus[1] ? '√' : ''}</p>
-	</div>
-	<div class="absolute bottom-2 right-2">
-		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('ready')}
-			>我准备好了</button
-		>
-		<button class="border bg-slate-300 rounded-md py-1 px-3" on:click={() => confirm('')}
-			>放弃</button
-		>
-	</div>
-</dialog>
+<StartConfirmDialog
+	bind:this={confirmDialog}
+	playerName={players}
+	hostReadyStatus={room.readyStatus[0]}
+	clientReadyStatus={room.readyStatus[1]}
+	on:confirm={handleConfirm}
+/>
