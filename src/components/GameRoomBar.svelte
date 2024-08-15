@@ -33,12 +33,12 @@
 	<legend>房间</legend>
 	{#if status.game == 'idle' && status.connected}
 		<button
-			class="border border-slate-400 disabled:border-slate-100 rounded-md disabled:text-slate-100 px-2"
+			class="bg-slate-200 dark:bg-slate-600 rounded-md px-2"
 			on:click={createRoom}
-			disabled={status.inRoom}>新建房间</button
+	>新建房间</button
 		>
 		<span>或者房间号码</span>
-		<RoomCode inRoom={status.inRoom} on:joinRoom={handleJoinRoom} bind:this={roomCode} />
+		<RoomCode on:joinRoom={handleJoinRoom} bind:this={roomCode} />
 	{/if}
 	{#if status.inRoom}
 		<span>在房间：{room.name} 中</span>

@@ -8,6 +8,7 @@
 	import Footer from '../components/Footer.svelte';
 	import StartConfirmDialog from '../components/dialog/StartConfirmDialog.svelte';
 
+	import ServerConnection from '../components/ServerConnection.svelte';
 	import GameStatusBar from '../components/GameStatusBar.svelte';
 	import GameRoomBar from '../components/GameRoomBar.svelte';
 	import GameGuideDialog from '../components/dialog/GameGuideDialog.svelte';
@@ -52,8 +53,6 @@
 	let gameGuideDialog = null;
 
 	let urlCopied = false;
-
-	$: statusText = status.connected ? '已连接' : '未连接';
 
 	// 恢复初始状态
 	const resetAll = () => {
@@ -272,21 +271,7 @@
 
 <div class="flex flex-col gap-2 min-h-screen dark:bg-slate-700 dark:text-slate-50 duration-300">
 	<div class="flex flex-col md:flex-row md:gap-2 mx-2">
-		<fieldset class="border border-slate-400 px-2 pb-2">
-			<legend>连接状态</legend>
-			<span>{statusText}</span>
-			{#if status.connected}
-				<button class="border border-slate-400 px-2 rounded-md" on:click={disconnect}
-					>断开连接</button
-				>
-			{:else}
-				<button class="border border-slate-400 px-2 rounded-md" on:click={connect}>重新连接</button>
-			{/if}
-			{#if status.connected && serverStatus.rooms != null && serverStatus.max_room != null}
-				<span>服务器房间数：{serverStatus.rooms}/{serverStatus.max_room}</span>
-			{/if}
-		</fieldset>
-
+		<ServerConnection {status} {serverStatus} on:connect={connect} on:disconnect={disconnect} />
 		<GameRoomBar
 			{status}
 			{room}

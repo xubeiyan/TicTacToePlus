@@ -1,9 +1,11 @@
 <!-- 棋盘 -->
 <script>
+	import SadIcon from '$icons/sad.svelte';
+	import TrophyIcon from '$icons/trophy.svelte';
 	import Chess from './Chess.svelte';
 
 	export let board = ['', '', '', '', '', '', '', '', ''];
-	export let winText = null;
+	export let winRole = null;
 
 	const getSize = (str) => {
 		if (str.length != 2) return '';
@@ -37,9 +39,17 @@
 			</button>
 		{/each}
 	</div>
-	{#if winText != null}
-		<div class="absolute inset-0 flex justify-center items-center z-10 bg-slate-200/50 dark:bg-slate-600/50">
-			<span>{winText}</span>
+	{#if winRole != null}
+		<div
+			class="absolute inset-0 flex flex-col gap-2 justify-center items-center z-10 bg-slate-200/50 dark:bg-slate-600/50"
+		>
+			{#if winRole == 'you'}
+				<TrophyIcon />
+				<span>Win!</span>
+			{:else}
+				<SadIcon />
+				<span>Lose...</span>
+			{/if}
 		</div>
 	{/if}
 </div>
