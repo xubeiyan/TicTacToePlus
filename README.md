@@ -27,7 +27,8 @@
         "type": "create_room_reply",
         "content": {
             "message": "success",
-            "room_name": "会React的Java新手"
+            "room_name": "会React的Java新手",
+            "room_code": 2345
         }
     }
     ```
@@ -51,7 +52,7 @@
         "type": "join_room",
         "content": {
             "nick_name": "def",
-            "room_name": "会React的Java新手",
+            "room_code": 2345,
         }
     }
     ```
@@ -61,7 +62,8 @@
         "v": "1",
         "type": "join_room_reply",
         "content": {
-            "message": "success"
+            "message": "success",
+            "room_name": "会React的Java新手"
         }
     }
     ```
@@ -72,7 +74,7 @@
         "type": "join_room_reply",
         "content": {
             "message": "fail",
-            "reason": "no room"
+            "reason": "no room code"
         }
     }
     ```

@@ -7,7 +7,11 @@
 
 	import Footer from '../components/Footer.svelte';
 	import StartConfirmDialog from '../components/dialog/StartConfirmDialog.svelte';
-	import RoomCode from '../components/joinRoom/RoomCode.svelte';
+
+	import ServerConnection from '../components/ServerConnection.svelte';
+	import GameStatusBar from '../components/GameStatusBar.svelte';
+	import GameRoomBar from '../components/GameRoomBar.svelte';
+	import GameGuideDialog from '../components/dialog/GameGuideDialog.svelte';
 
 	// 状态
 	const status = {
@@ -45,14 +49,10 @@
 	let gameBoard = null;
 	// 确认对话框
 	let confirmDialog = null;
-	// 房间号输入框
-	let roomCode = null;
+	// 游戏指导对话框
+	let gameGuideDialog = null;
 
 	let urlCopied = false;
-
-	$: statusText = status.connected ? '已连接' : '未连接';
-	$: turnText = ` - ${room.yourRole == room.turnRole ? '该你了' : '对手下子'}`;
-	$: winnerText = ` - ${room.winner == 'host' ? players.host : players.client}获胜`;
 
 	// 恢复初始状态
 	const resetAll = () => {
@@ -259,6 +259,11 @@
 		);
 	};
 
+	const handleGameGuideOpen = () => {
+		if (gameGuideDialog == null) return;
+		gameGuideDialog.openDialog();
+	};
+
 	onMount(() => {
 		connect();
 	});
@@ -266,55 +271,15 @@
 
 <div class="flex flex-col gap-2 min-h-screen dark:bg-slate-700 dark:text-slate-50 duration-300">
 	<div class="flex flex-col md:flex-row md:gap-2 mx-2">
-		<fieldset class="border border-slate-400 px-2 pb-2">
-			<legend>连接状态</legend>
-			<span>{statusText}</span>
-			{#if status.connected}
-				<button class="border border-slate-400 px-2 rounded-md" on:click={disconnect}
-					>断开连接</button
-				>
-			{:else}
-				<button class="border border-slate-400 px-2 rounded-md" on:click={connect}>重新连接</button>
-			{/if}
-			{#if serverStatus.rooms != null && serverStatus.max_room != null}
-				<span>服务器房间数：{serverStatus.rooms}/{serverStatus.max_room}</span>
-			{/if}
-		</fieldset>
-		<fieldset class="border border-slate-400 px-2 pb-2 grow">
-			<legend>房间</legend>
-			{#if status.game == 'idle' && status.connected}
-				<button
-					class="border border-slate-400 disabled:border-slate-100 rounded-md disabled:text-slate-100 px-2"
-					on:click={createRoom}
-					disabled={status.inRoom}>新建房间</button
-				>
-				<span>或者房间号码</span>
-				<RoomCode inRoom={status.inRoom} on:joinRoom={handleJoinRoom} bind:this={roomCode} />
-			{/if}
-			{#if status.inRoom}
-				<span>在房间：{room.name} 中</span>
-				{#if status.game == 'waitForAnother'}
-					<span>房间号：{room.code}</span>
-				{/if}
-				<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
-				<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
-			{/if}
-		</fieldset>
-
-		<fieldset class="border border-slate-400 px-2 pb-2">
-			<legend>游戏状态</legend>
-			{#if status.game == 'idle'}
-				<span>空闲中</span>
-			{:else if status.game == 'waitForAnother'}
-				<span>等待另一玩家加入</span>
-			{:else if status.game == 'confirm'}
-				<span>开始确认</span>
-			{:else if status.game == 'started'}
-				<span>游戏开始 {turnText}</span>
-			{:else if status.game == 'end'}
-				<span>游戏结束 {winnerText}</span>
-			{/if}
-		</fieldset>
+		<ServerConnection {status} {serverStatus} on:connect={connect} on:disconnect={disconnect} />
+		<GameRoomBar
+			{status}
+			{room}
+			{players}
+			on:createRoom={createRoom}
+			on:joinRoom={handleJoinRoom}
+		/>
+		<GameStatusBar {status} {room} {players} />
 	</div>
 	{#if status.game == 'started' || status.game == 'end'}
 		<GameBoard
@@ -326,7 +291,7 @@
 			on:win={(e) => handleWin(e)}
 		/>
 	{/if}
-	<Footer />
+	<Footer on:gameGuideToggle={handleGameGuideOpen} />
 </div>
 
 <StartConfirmDialog
@@ -336,3 +301,5 @@
 	clientReadyStatus={room.readyStatus[1]}
 	on:confirm={handleConfirm}
 />
+
+<GameGuideDialog bind:this={gameGuideDialog} />

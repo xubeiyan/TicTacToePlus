@@ -27,7 +27,7 @@
 	const dispatch = createEventDispatcher();
 
 	// 胜利消息
-	let winText = null;
+	let winRole = null;
 
 	// 选择了棋子
 	const handlePickChess = (e) => {
@@ -150,16 +150,16 @@
 	// 胜利
 	export const win = ({ color, position, role }) => {
 		if (role == yourRole) {
-			winText = '恭喜你获得了胜利！';
+			winRole = 'you';
 		} else {
-			winText = '你输了';
+			winRole = 'opposite';
 		}
 	};
 </script>
 
 <div class="flex flex-col md:flex-row gap-2 px-2 md:gap-8 grow md:justify-center items-center">
 	<ChessHolder color={leftColor} {cellSize} chess={leftHolder} {selectChess} />
-	<ChessBoard {board} {winText} on:putChess={(e) => handlePutChess(e)} />
+	<ChessBoard {board} {winRole} on:putChess={(e) => handlePutChess(e)} />
 	<ChessHolder
 		color={rightColor}
 		{yourTurn}
