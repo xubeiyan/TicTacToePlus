@@ -10,6 +10,7 @@
 
 	import GameStatusBar from '../components/GameStatusBar.svelte';
 	import GameRoomBar from '../components/GameRoomBar.svelte';
+	import GameGuideDialog from '../components/dialog/GameGuideDialog.svelte';
 
 	// 状态
 	const status = {
@@ -47,6 +48,8 @@
 	let gameBoard = null;
 	// 确认对话框
 	let confirmDialog = null;
+	// 游戏指导对话框
+	let gameGuideDialog = null;
 
 	let urlCopied = false;
 
@@ -257,6 +260,11 @@
 		);
 	};
 
+	const handleGameGuideOpen = () => {
+		if (gameGuideDialog == null) return;
+		gameGuideDialog.openDialog();
+	};
+
 	onMount(() => {
 		connect();
 	});
@@ -298,7 +306,7 @@
 			on:win={(e) => handleWin(e)}
 		/>
 	{/if}
-	<Footer />
+	<Footer on:gameGuideToggle={handleGameGuideOpen} />
 </div>
 
 <StartConfirmDialog
@@ -308,3 +316,5 @@
 	clientReadyStatus={room.readyStatus[1]}
 	on:confirm={handleConfirm}
 />
+
+<GameGuideDialog bind:this={gameGuideDialog} />

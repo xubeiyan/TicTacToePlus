@@ -1,8 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
 
+	import SunIcon from '$icons/sun.svelte';
+	import MoonIcon from '$icons/moon.svelte';
+
 	let dark = false;
-	$: text = dark ? 'dark' : 'light';
+	$: bgColor = dark ? 'bg-slate-600' : 'bg-slate-200';
+	$: title = dark ? '明亮' : '黑暗';
 
 	const toggleDark = () => {
 		if (dark) {
@@ -20,12 +24,15 @@
 		if (colorScheme == undefined) {
 			window.localStorage.setItem('colorScheme', 'light');
 		} else if (colorScheme == 'dark' && dark == false) {
-            toggleDark();
-        }
+			toggleDark();
+		}
 	});
 </script>
 
-<label>
-	<input type="checkbox" on:change={toggleDark} />
-	<span>{text}</span>
-</label>
+<button class="inline-flex items-center {bgColor} rounded-md p-1" title={title} on:click={toggleDark}>
+	{#if dark}
+		<SunIcon />
+	{:else}
+		<MoonIcon />
+	{/if}
+</button>

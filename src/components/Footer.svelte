@@ -1,6 +1,13 @@
 <script>
     import GithubIcon from '$icons/github.svelte';
     import DarkModeSwitch from './footer/DarkModeSwitch.svelte';
+
+	import { createEventDispatcher } from 'svelte';
+	const dispatch = createEventDispatcher();
+
+	const toggleDialog = () => {
+		dispatch('gameGuideToggle')
+	}
 </script>
 
 <div class="absolute w-full bottom-0">
@@ -9,8 +16,8 @@
 			<span class="mr-2">Tic-Tac-Toe Plus</span>
 			<a href="https://github.com/xubeiyan/TicTacToePlus" target="_blank"><GithubIcon /></a>
 		</div>
-		<div>
-			<button class="bg-slate-200 dark:bg-slate-600 px-2 rounded-md"> 查看规则 </button>
+		<div class="flex items-center gap-1">
+			<button class="bg-slate-200 dark:bg-slate-600 px-2 rounded-md" on:click={toggleDialog}> 查看规则 </button>
 			<DarkModeSwitch />
 		</div>
 	</fieldset>
