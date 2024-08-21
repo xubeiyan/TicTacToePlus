@@ -51,6 +51,8 @@
 	let confirmDialog = null;
 	// 游戏指导对话框
 	let gameGuideDialog = null;
+	// 游戏方向条
+	let gameRoomBar = null;
 
 	let urlCopied = false;
 
@@ -107,7 +109,9 @@
 				if (data.content == undefined) return;
 				if (data.content.message == 'fail') {
 					room.failMessage = data.content.reason;
-					roomCode.clearRoomCode();
+					if (gameRoomBar != null) {
+						gameRoomBar.handleCleanRoomCode();
+					}
 				} else if (data.content.message == 'success') {
 					status.inRoom = true;
 					room.name = data.content.room_name;
@@ -278,6 +282,7 @@
 			{players}
 			on:createRoom={createRoom}
 			on:joinRoom={handleJoinRoom}
+			bind:this={gameRoomBar}
 		/>
 		<GameStatusBar {status} {room} {players} />
 	</div>
