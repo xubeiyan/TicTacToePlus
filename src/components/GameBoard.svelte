@@ -17,11 +17,14 @@
 	// 格子大小
 	let cellSize = '16';
 
-	// 棋盘
+	// 棋盘 放置了红色大棋子则为 rl，蓝色小棋子为 bs
 	let board = ['', '', '', '', '', '', '', '', ''];
 	// 两边的可用棋子
 	let leftHolder = ['s', 'm', 'l', 's', 'm', 'l', 's', 'm', 'l'];
 	let rightHolder = ['s', 'm', 'l', 's', 'm', 'l', 's', 'm', 'l'];
+
+	// 棋子摆放顺序
+	let chessPutOrder = [];
 
 	import { createEventDispatcher } from 'svelte';
 	const dispatch = createEventDispatcher();
@@ -50,6 +53,7 @@
 		if (originalChess != '') {
 			const color = originalChess[0] == 'r' ? 'red' : 'blue';
 			const size = originalChess[1];
+			// 不允许自己盖自己的
 			if (color == selectChess.color) return;
 			if (size == 'l') return;
 			if (size == 'm' && selectChess.index % 3 < 2) return;
@@ -90,10 +94,71 @@
 		board[board_index] = `${colorChar}${sizeChar}`;
 		board = board;
 
+		chessPutOrder.push({
+			role,
+			color,
+			holder_index,
+			board_index
+		});
+
+		// 对面下的检查自己是否还能下
+		if (role != yourRole) {
+			const rightLargest = getLargestFromRightHolder();
+			const boardSmallest = getLargestFromBoard();
+			if (
+				rightLargest == '' ||
+				(rightLargest == 'l' && boardSmallest == 'l') ||
+				(rightLargest == 'm' && (boardSmallest == 'm' || boardSmallest == 'l')) ||
+				(rightLargest == 's' &&
+					(boardSmallest == 's' || boardSmallest == 'm' || boardSmallest == 'l'))
+			) {
+				dispatch('unablePutChess', {
+					color: rightColor
+				});
+			}
+		}
+
 		// 自己下的则检测是否胜利
 		if (role == yourRole) {
 			checkWin();
 		}
+	};
+
+	// 获取右边放置处最大的棋子
+	const getLargestFromRightHolder = () => {
+		let result = '';
+		rightHolder.forEach((c) => {
+			if (c == 's' && result == '') {
+				result = 's';
+			} else if (c == 'm' && (result == '' || result == 's')) {
+				result = 'm';
+			} else if (c == 'l' && (result == '' || result == 's' || result == 'm')) {
+				result = 'l';
+			}
+		});
+
+		return result;
+	};
+
+	// 获取棋盘上当前最小的棋子
+	const getLargestFromBoard = () => {
+		let result = 'l';
+		let color = leftColor == 'red' ? 'r' : 'b';
+
+		for (let c of board) {
+			if (c == '') return '';
+			if (c[0] != color) continue;
+			if (c[1] == 'm' && result == 'l') {
+				result = 'm';
+				continue;
+			}
+			if (c[1] == 's' && result == 'm') {
+				result = 's';
+				continue;
+			}
+		}
+
+		return result;
 	};
 
 	// 检查胜利
@@ -141,6 +206,9 @@
 		}
 	};
 
+	// 显示胜利步骤
+	const showChessPutOrder = () => {};
+
 	// 选择棋子
 	export const updateSelectChess = ({ color, index }) => {
 		selectChess.color = color;
@@ -149,15 +217,18 @@
 
 	// 胜利
 	export const win = ({ role }) => {
-		if (role == yourRole) {
+		if (role == null) {
+			winRole = 'noone';
+		} else if (role == yourRole) {
 			winRole = 'you';
 		} else {
 			winRole = 'opposite';
 		}
+		showChessPutOrder();
 	};
 </script>
 
-<div class="flex flex-col md:flex-row gap-2 px-2 md:gap-8 grow md:justify-center items-center">
+<div class="flex flex-col md:flex-row gap-2 md:gap-8 md:justify-center items-center">
 	<ChessHolder color={leftColor} {cellSize} chess={leftHolder} {selectChess} />
 	<ChessBoard {board} {winRole} on:putChess={(e) => handlePutChess(e)} />
 	<ChessHolder

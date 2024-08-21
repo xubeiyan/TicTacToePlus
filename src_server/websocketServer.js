@@ -216,6 +216,17 @@ wss.on('connection', (ws) => {
             role: data.content.role,
             color: data.content.color,
             position: data.content.position,
+            chess_put_order: data.content.chess_put_order,
+          }
+        }));
+      })
+    } else if (data.type == 'no_chess_put') {
+      const filtered = room_lists.filter(one => one.room_name == data.content.room_name);
+      if (filtered.length != 1) return;
+      filtered[0].ws.forEach(socket => {
+        socket.send(JSON.stringify({
+          v: "1", type: "draw_broadcast", content: {
+            color: data.content.color,
           }
         }));
       })

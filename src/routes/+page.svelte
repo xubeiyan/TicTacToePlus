@@ -157,9 +157,12 @@
 			} else if (data.type == 'other_lost_connection') {
 				// 如果已经结束关闭则不做任何操作
 				if (status.game == 'end') return;
-				status.game = 'end';
+				status.game = 'lostEnd';
 				room.winner = room.yourRole;
 				gameBoard.win({ role: room.yourRole });
+			} else if (data.type == 'draw_broadcast') {
+				status.game = 'drawEnd';
+				gameBoard.win({ role: null });
 			}
 		});
 	};
@@ -269,6 +272,20 @@
 		);
 	};
 
+	// 处理无法下棋
+	const handleUnablePutChess = (e) => {
+		ws.send(
+			JSON.stringify({
+				v: '1',
+				type: 'no_chess_put',
+				content: {
+					room_name: room.name,
+					color: e.detail.color
+				}
+			})
+		);
+	};
+
 	const handleGameGuideOpen = () => {
 		if (gameGuideDialog == null) return;
 		gameGuideDialog.openDialog();
@@ -292,16 +309,19 @@
 		/>
 		<GameStatusBar {status} {room} {players} />
 	</div>
-	{#if status.game == 'started' || status.game == 'end'}
-		<GameBoard
-			bind:this={gameBoard}
-			yourRole={room.yourRole}
-			turnRole={room.turnRole}
-			on:pickColorChessOnIndex={(e) => handlePickChess(e)}
-			on:putColorChessOnIndex={(e) => handlePutChess(e)}
-			on:win={(e) => handleWin(e)}
-		/>
-	{/if}
+	<div class="flex flex-col justify-center grow px-2">
+		{#if status.game == 'started' || status.game == 'end' || status.game == 'lostEnd' || status.game == 'drawEnd'}
+			<GameBoard
+				bind:this={gameBoard}
+				yourRole={room.yourRole}
+				turnRole={room.turnRole}
+				on:pickColorChessOnIndex={(e) => handlePickChess(e)}
+				on:putColorChessOnIndex={(e) => handlePutChess(e)}
+				on:win={(e) => handleWin(e)}
+				on:unablePutChess={(e) => handleUnablePutChess(e)}
+			/>
+		{/if}
+	</div>
 	<Footer on:gameGuideToggle={handleGameGuideOpen} />
 </div>
 
