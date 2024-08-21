@@ -12,7 +12,7 @@
 	}
 </script>
 
-<div class="absolute w-full bottom-0">
+<div class="w-full">
 	<fieldset class="border border-slate-400 m-2 px-2 py-1 flex justify-between">
 		<div class="flex items-center">
 			<span class="mr-2">Tic-Tac-Toe Plus</span>

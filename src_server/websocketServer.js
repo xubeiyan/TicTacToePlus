@@ -18,6 +18,7 @@ console.log(`[GameServer] Started on port ${port}, max room size is ${MAX_ROOM_L
 
 wss.on('connection', (ws) => {
   let room_name = null;
+  let role = null;
   let timeout_time = 0;
   ws.on('error', console.error);
 
@@ -60,6 +61,7 @@ wss.on('connection', (ws) => {
 
       const { name, code } = generateRandomRoomNameAndCode(room_lists.length);
       room_name = name;
+      role = 'host';
 
       room_lists.push({
         room_name,
@@ -129,6 +131,9 @@ wss.on('connection', (ws) => {
           max_room: MAX_ROOM_LENGTH,
         }
       }));
+
+      room_name = filtered[0].room_name;
+      role = 'client';
       // 向两个参与者发送请求确认消息
       filtered[0].ws.forEach(socket => {
         socket.send(JSON.stringify({
@@ -211,6 +216,17 @@ wss.on('connection', (ws) => {
             role: data.content.role,
             color: data.content.color,
             position: data.content.position,
+            chess_put_order: data.content.chess_put_order,
+          }
+        }));
+      })
+    } else if (data.type == 'no_chess_put') {
+      const filtered = room_lists.filter(one => one.room_name == data.content.room_name);
+      if (filtered.length != 1) return;
+      filtered[0].ws.forEach(socket => {
+        socket.send(JSON.stringify({
+          v: "1", type: "draw_broadcast", content: {
+            color: data.content.color,
           }
         }));
       })
@@ -232,6 +248,18 @@ wss.on('connection', (ws) => {
     clearInterval(keepAliveTimer);
     console.log(`[GameServer] close a websocket`);
     if (room_name != null) {
+      // 告诉另一个游戏者这人已经断开了
+      console.log(`[GameServer] ${role} lost connecttion, send lost message to another`);
+      const filtered = room_lists.filter(one => one.room_name == room_name);
+      if (filtered.length != 1) return;
+      filtered[0].ws.forEach(socket => {
+        socket.send(JSON.stringify({
+          v: '1', type: 'other_lost_connection', content: {
+            from: role,
+          }
+        }));
+      });
+
       room_lists = room_lists.filter(one => one.room_name != room_name);
       console.log(`[GameServer] room ${room_name} close`);
     }

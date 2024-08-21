@@ -1,6 +1,7 @@
 <!-- 棋盘 -->
 <script>
 	import SadIcon from '$icons/sad.svelte';
+	import SmileIcon from '$icons/smile.svelte';
 	import TrophyIcon from '$icons/trophy.svelte';
 	import Chess from './Chess.svelte';
 
@@ -46,6 +47,9 @@
 			{#if winRole == 'you'}
 				<TrophyIcon />
 				<span>Win!</span>
+			{:else if winRole == 'noone'}
+				<SmileIcon />
+				<span>Draw</span>
 			{:else}
 				<SadIcon />
 				<span>Lose...</span>
