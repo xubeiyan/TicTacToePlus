@@ -148,7 +148,7 @@
 	};
 
 	// 胜利
-	export const win = ({ color, position, role }) => {
+	export const win = ({ role }) => {
 		if (role == yourRole) {
 			winRole = 'you';
 		} else {

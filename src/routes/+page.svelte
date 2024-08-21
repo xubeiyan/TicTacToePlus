@@ -154,6 +154,12 @@
 				status.game = 'end';
 				room.winner = data.content.role;
 				gameBoard.win(data.content);
+			} else if (data.type == 'other_lost_connection') {
+				// 如果已经结束关闭则不做任何操作
+				if (status.game == 'end') return;
+				status.game = 'end';
+				room.winner = room.yourRole;
+				gameBoard.win({ role: room.yourRole });
 			}
 		});
 	};
