@@ -247,55 +247,61 @@
 
 #### 克隆仓库
 
-```
-git clone https://github.com/xubeiyan/TicTacToePlus
+```shell
+$ git clone https://github.com/xubeiyan/TicTacToePlus
 ```
 
 #### 安装依赖
 
-```
-cd TicTacToePlus
-pnpm i
+```shell
+$ cd TicTacToePlus
+$ pnpm i
 ```
 
 #### 修改监听的 `websocket` 地址
 
 复制一份 `.env.example` 为 `.env`，修改 `PUBLIC_WEBSOCKET_ADDRESS` 为合适的值，例如 `ws://yourdomain.net:6789`
 
-```
-cp .env.example .env
+```shell
+# 在TicTacToePlus目录下
+$ cp .env.example .env
 ```
 修改`.env`文件 (省略)
 
 #### 构建打包好的文件
 
-```
-pnpm build
+```shell
+$ pnpm build
 ```
 
 文件会生成在 `build` 目录下，复制到你的服务器的路径下
 
-```
-cd build
-cp -r * /path/to/your/staticFile
+```shell
+$ cd build
+$ cp -r * /path/to/your/staticFile
 ``` 
 
 ### `websocket` 服务器
 
+#### 修改 `wsServer` 目录下的配置文件
+
+复制一份 `wsServer/.env.example` 为 `wsServer/.env`，可修改的值包括 `PORT`, `MAX_ROOM`, `PROD`(true则会在 `WebSocket` 连接中进行连接健康度查询)
+
+```shell
+$ cp wsServer/.env.example wsServer/.env
+```
+
+修改`.env`文件 (省略)
+
 #### 启动服务器
 
-```
-node src_server/websocketServer.js
+```shell
+$ node --env-file=wsServer/.env wsServer/server.js
 ```
 
 出现下列消息则启动成功
 ```
-[GameServer] Started on port 9876, max room size is 5
-```
-
-如需修改端口和最大房间数，可以在环境变量指定
-```
-PORT=6789 MAX_ROOM=100 node src_server/websocketServer.js
+[GameServer] Started on port 6789, max room size is 5
 ```
 
 #### 反向代理服务器
