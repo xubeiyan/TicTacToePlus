@@ -1,10 +1,16 @@
 const nameTemplates = [
-    'Evan You',
-    'Jordan Walke',
+    'Ryan Dahl',
+    'Brendan Eich',
+    'Michael Ficarra',
     'Rich Harris',
-    'Jason Miller',
-    'Ryan Carniato',
-    ''
+    'Isaac Z. Schlueter',
+    'Feross Aboukhadijeh',
+    'James M Snell',
+    'Wes Bos',
+    'Scott Tolinski',
+    'Shu-yu Guo',
+    'Jordan Harband',
+    'Matt Pocock'
 ];
 
 // 生成0到value的随机整数（不包括value）
