@@ -28,8 +28,8 @@
 	{#if status.connected}
 		<Button on:click={disconnect}>断开连接</Button>
 	{:else}
-		<button class="bg-slate-200 dark:bg-slate-600 px-2 rounded-md" on:click={connect}
-			>重新连接</button
+		<Button on:click={connect}
+			>重新连接</Button
 		>
 	{/if}
 	{#if status.connected && serverStatus.rooms != null && serverStatus.max_room != null}

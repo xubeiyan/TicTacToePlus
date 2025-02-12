@@ -310,7 +310,7 @@
 		<GameStatusBar {status} {room} {players} />
 	</div>
 	<div class="flex flex-col justify-center grow px-2">
-		{#if status.game == 'started' || status.game == 'end' || status.game == 'lostEnd' || status.game == 'drawEnd'}
+		{#if status.game == 'started' || status.game == 'end' || status.game == 'drawEnd'}
 			<GameBoard
 				bind:this={gameBoard}
 				yourRole={room.yourRole}
