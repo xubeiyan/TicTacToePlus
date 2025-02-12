@@ -271,14 +271,15 @@ $ cp .env.example .env
 #### 构建打包好的文件
 
 ```shell
+# 在TicTacToePlus目录下
 $ pnpm build
 ```
 
 文件会生成在 `build` 目录下，复制到你的服务器的路径下
 
 ```shell
-$ cd build
-$ cp -r * /path/to/your/staticFile
+# 在TicTacToePlus目录下
+$ cp -r build/* /path/to/your/staticFile
 ``` 
 
 ### `websocket` 服务器
@@ -288,6 +289,7 @@ $ cp -r * /path/to/your/staticFile
 复制一份 `wsServer/.env.example` 为 `wsServer/.env`，可修改的值包括 `PORT`, `MAX_ROOM`, `PROD`(true则会在 `WebSocket` 连接中进行连接健康度查询)
 
 ```shell
+# 在TicTacToePlus目录下
 $ cp wsServer/.env.example wsServer/.env
 ```
 
@@ -296,6 +298,7 @@ $ cp wsServer/.env.example wsServer/.env
 #### 启动服务器
 
 ```shell
+# 在TicTacToePlus目录下
 $ node --env-file=wsServer/.env wsServer/server.js
 ```
 
