@@ -203,11 +203,45 @@
         }
     }
     ```
+* 平局
+    * `b2s`
+    ```javascript
+    {
+        "v": "1",
+        "type": "no_chess_put",
+        "content": {
+            "room_name": "会React的Java新手",
+            "color": "red",
+        }
+    }
+    ```
+    * `s2b` 
+    ```javascript
+    {
+        "v": "1",
+        "type": "draw_broadcast",
+        "content": {
+            "color": "red",
+        }
+    }
+    ```
+
+* 丢失连接
+    * `s2b`
+    ```javascript
+    {
+        "v": "1",
+        "type": "other_lost_connection",
+        "content": {
+            "from": "host",
+        }
+    }
+    ```
 </details>
 
 ## 部署策略
 
-分为两个部分，一个是网页客户端，仅有一个静态页面，只需打包后部署到服务器上；另一个则是`websocket`服务端
+分为两个部分，一个是网页客户端，仅有一个静态页面，只需打包后部署到服务器上；另一个则是`websocket`服务端，需要使用`node`环境
 
 ### 网页客户端
 

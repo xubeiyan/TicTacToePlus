@@ -5,8 +5,7 @@
 	import MoonIcon from '$icons/moon.svelte';
 
 	let dark = false;
-	$: bgColor = dark ? 'bg-slate-600' : 'bg-slate-200';
-	$: title = dark ? '明亮' : '黑暗';
+	$: bgColor = dark ? 'bg-slate-500/80 hover:bg-slate-500' : 'hover:bg-slate-200 bg-slate-200/80';
 
 	const toggleDark = () => {
 		if (dark) {
@@ -29,7 +28,7 @@
 	});
 </script>
 
-<button class="inline-flex items-center {bgColor} rounded-md p-1" title={title} on:click={toggleDark}>
+<button class="inline-flex items-center {bgColor} rounded-md p-1" on:click={toggleDark}>
 	{#if dark}
 		<SunIcon />
 	{:else}

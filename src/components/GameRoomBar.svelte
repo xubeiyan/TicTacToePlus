@@ -1,10 +1,14 @@
 <script>
-	import RoomCode from '../components/joinRoom/RoomCode.svelte';
+	import RoomCode from './GameRoomBar/RoomCode.svelte';
+	import FailMessage from './GameRoomBar/FailMessage.svelte';
+	import Button from './Button.svelte';
+
 	export let status = {
 		game: null
 	};
 
 	export let room = {
+		failMessage: null,
 		yourRole: null
 	};
 
@@ -37,9 +41,7 @@
 <fieldset class="border border-slate-400 px-2 pb-2 grow">
 	<legend>房间</legend>
 	{#if status.game == 'idle' && status.connected}
-		<button class="bg-slate-200 dark:bg-slate-600 rounded-md px-2" on:click={createRoom}
-			>新建房间</button
-		>
+		<Button on:click={createRoom}>新建房间</Button>
 		<span>或者房间号码</span>
 		<RoomCode on:joinRoom={handleJoinRoom} bind:this={roomCode} />
 	{/if}
@@ -48,7 +50,10 @@
 		{#if status.game == 'waitForAnother'}
 			<span>房间号：{room.code}</span>
 		{/if}
-		<span class={room.yourRole == 'host' ? 'font-bold' : ''}>房主：{players.host}</span>
-		<span class={room.yourRole == 'client' ? 'font-bold' : ''}>参加者：{players.client}</span>
+		<span class={room.yourRole == 'host' ? 'underline' : ''}>房主：{players.host}</span>
+		<span class={room.yourRole == 'client' ? 'underline' : ''}>参加者：{players.client}</span>
+	{/if}
+	{#if room.failMessage != null}
+		<FailMessage message={room.failMessage} />
 	{/if}
 </fieldset>
