@@ -30,7 +30,7 @@
 	const room = {
 		name: '',
 		code: '',
-		failMessage: undefined,
+		failMessage: null,
 		yourRole: undefined,
 		readyStatus: [null, null],
 		turnRole: null,
@@ -71,6 +71,7 @@
 
 	// 连接websocket
 	const connect = () => {
+		resetAll();
 		ws = new WebSocket(PUBLIC_WEBSOCKET_ADDRESS);
 
 		ws.addEventListener('open', () => {
@@ -101,6 +102,10 @@
 					status.inRoom = true;
 					room.name = data.content.room_name;
 					room.code = data.content.room_code;
+
+					players.host = data.content.player_name;
+					status.game = 'waitForAnother';
+					room.yourRole = 'host';
 				} else if (data.content.message == 'fail') {
 					room.failMessage = data.content.reason;
 				}
@@ -115,6 +120,8 @@
 				} else if (data.content.message == 'success') {
 					status.inRoom = true;
 					room.name = data.content.room_name;
+					players.host = data.content.other_player_name;
+					players.client = data.content.player_name;
 				}
 				// 请求游戏开始
 			} else if (data.type == 'start_request') {
@@ -177,31 +184,22 @@
 	// 新建房间
 	const createRoom = () => {
 		if (ws == null) return;
-		const playerName = generateRandomPlayerName();
 		ws.send(
 			JSON.stringify({
 				v: '1',
-				type: 'create_room',
-				content: {
-					nick_name: playerName
-				}
+				type: 'create_room'
 			})
 		);
-		players.host = playerName;
-		status.game = 'waitForAnother';
-		room.yourRole = 'host';
 	};
 
 	// 加入房间
 	const handleJoinRoom = (e) => {
 		if (ws == null) return;
-		players.client = generateRandomPlayerName();
 		ws.send(
 			JSON.stringify({
 				v: '1',
 				type: 'join_room',
 				content: {
-					nick_name: players.client,
 					room_code: e.detail.code
 				}
 			})
